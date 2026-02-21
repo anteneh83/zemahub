@@ -15,21 +15,7 @@ type Video = {
   publishedAt: string;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
-
-async function fetchJson<T>(path: string, token?: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error("Request failed");
-  }
-  return res.json();
-}
+import { apiFetch } from "@/lib/api";
 
 function formatCount(count: number) {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
@@ -64,7 +50,7 @@ export default function Home() {
     async function loadIds() {
       try {
         const [fav] = await Promise.all([
-          fetchJson<{ videoIds: string[] }>("/api/user/favorites/ids", tokenStr),
+          apiFetch<{ videoIds: string[] }>("/api/user/favorites/ids", {}, tokenStr),
         ]);
         setFavoriteIds(new Set(fav.videoIds));
       } catch {
@@ -78,10 +64,10 @@ export default function Home() {
     async function load() {
       try {
         const [t, n, f, filtered] = await Promise.all([
-          fetchJson<Video[]>("/api/videos/trending"),
-          fetchJson<Video[]>("/api/videos/new"),
-          fetchJson<Video[]>("/api/videos/fastest"),
-          fetchJson<Video[]>(`/api/videos/search?q=&filter=trending`),
+          apiFetch<Video[]>("/api/videos/trending"),
+          apiFetch<Video[]>("/api/videos/new"),
+          apiFetch<Video[]>("/api/videos/fastest"),
+          apiFetch<Video[]>(`/api/videos/search?q=&filter=trending`),
         ]);
         setTrending(t);
         setNewReleases(n);
@@ -95,7 +81,7 @@ export default function Home() {
   }, []);
 
   async function runSearch(q: string, f: "trending" | "new" | "popular") {
-    const results = await fetchJson<Video[]>(
+    const results = await apiFetch<Video[]>(
       `/api/videos/search?q=${encodeURIComponent(q.trim())}&filter=${f}`,
     );
     setSearchResults(results);
@@ -112,20 +98,18 @@ export default function Home() {
       const isFav = favoriteIds.has(videoId);
       try {
         if (isFav) {
-          await fetch(`${API_BASE}/api/user/favorites/${videoId}`, {
+          await apiFetch(`/api/user/favorites/${videoId}`, {
             method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          }, token);
           setFavoriteIds((prev) => {
             const next = new Set(prev);
             next.delete(videoId);
             return next;
           });
         } else {
-          await fetch(`${API_BASE}/api/user/favorites/${videoId}`, {
+          await apiFetch(`/api/user/favorites/${videoId}`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          }, token);
           setFavoriteIds((prev) => new Set(prev).add(videoId));
         }
       } catch {
@@ -196,47 +180,48 @@ export default function Home() {
       <main className="mx-auto max-w-6xl px-4 py-6">
         <section className="relative mb-8 overflow-hidden rounded-2xl min-h-[280px]">
           <div
-            className="absolute inset-0 -z-10"
+            className="absolute inset-0 z-0"
             aria-hidden
           >
-            {trending[0]?.thumbnail ? (
-              <>
-                <div
-                  className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-                  style={{
-                    backgroundImage: `url(${trending[0].thumbnail})`,
-                    filter: "blur(14px)",
-                  }}
-                />
-                <div className="absolute inset-0 bg-slate-950/30" />
-              </>
-            ) : (
-              <div className="absolute inset-0 bg-slate-900/90" />
-            )}
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
+              style={{
+                backgroundImage: `url(${trending[0]?.thumbnail || "/images/hero-bg.png"})`,
+                filter: trending[0]?.thumbnail ? "blur(8px)" : "none",
+              }}
+            />
+            <div className="absolute inset-0 bg-slate-950/50" />
           </div>
 
           <div className="relative z-10 p-6 sm:p-8 md:p-10">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl text-slate-50">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl text-slate-50 drop-shadow-sm">
               Discover Ethiopian music in one place.
             </h1>
-            <p className="mt-2 max-w-xl text-sm text-slate-300 sm:text-base">
+            <p className="mt-3 max-w-xl text-sm text-slate-200 sm:text-base md:text-lg font-medium drop-shadow-sm">
               All the latest and trending Ethiopian music videos, ranked by real
               engagement and updated every day.
             </p>
 
             <form
               onSubmit={handleSearch}
-              className="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-700/80 bg-slate-900/50 p-4 sm:flex-row sm:items-center"
+              className="mt-8 flex flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900/40 p-4 backdrop-blur-md sm:flex-row sm:items-center shadow-xl"
             >
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by artist or song title…"
-                className="flex-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-50 placeholder:text-slate-500 caret-emerald-400 outline-none ring-emerald-500/40 focus:ring"
-              />
+              <div className="relative flex-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by artist or song title…"
+                  className="w-full rounded-xl border border-slate-700/50 bg-slate-950/50 pl-10 pr-3 py-2.5 text-sm text-slate-50 placeholder:text-slate-500 caret-emerald-400 outline-none ring-emerald-500/40 focus:ring-2"
+                />
+              </div>
               <button
                 type="submit"
-                className="w-full rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-sm hover:bg-emerald-400 sm:w-auto"
+                className="w-full rounded-xl bg-emerald-500 px-6 py-2.5 text-sm font-bold text-slate-950 shadow-sm hover:bg-emerald-400 transition-colors sm:w-auto"
               >
                 Search
               </button>
