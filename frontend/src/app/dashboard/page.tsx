@@ -47,7 +47,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
             <Link href="/" className="rounded-lg bg-emerald-500 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-slate-950 hover:bg-emerald-400">
