@@ -9,7 +9,6 @@ ZemaHub is a web-based Ethiopian music discovery platform that aggregates, ranks
 -   📈 **Fastest Growing**: Highlighting tracks with rapid engagement growth.
 -   👤 **User Accounts**: Secure login/registration to save favorites and watch later.
 -   ❤️ **Favorites System**: Save and manage your favorite Ethiopian tracks.
--   ⏳ **Watch Later**: Personal playlist for music you want to watch later.
 -   📱 **Fully Responsive**: Optimized for mobile, tablet, and desktop.
 -   ▶ **Embedded Playback**: Watch directly via official YouTube iframe embeds.
 -   🔎 **Search & Filter**: Find music by artist, song title, or popularity.

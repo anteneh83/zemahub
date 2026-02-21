@@ -5,7 +5,7 @@ This is the Next.js frontend for ZemaHub, the Ethiopian music discovery platform
 ## 🚀 Features
 - **Responsive Navigation**: Access Trending, New, and Fastest Growing sections.
 - **Dynamic Search**: Instantly find music by artist or title.
-- **User Library**: Interactive heart and clock icons for Favorites and Watch Later (authenticated only).
+- **User Library**: Interactive heart icon for Favorites (authenticated only).
 - **Embedded Playback**: Modal-based YouTube player using official iframes.
 - **Client-Side State**: Fast filtering and JWT-based authentication flow.
 

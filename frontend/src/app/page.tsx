@@ -49,7 +49,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [watchLaterIds, setWatchLaterIds] = useState<Set<string>>(new Set());
   const [embedVideoId, setEmbedVideoId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,21 +58,17 @@ export default function Home() {
   useEffect(() => {
     if (!token) {
       setFavoriteIds(new Set());
-      setWatchLaterIds(new Set());
       return;
     }
     const tokenStr: string = token;
     async function loadIds() {
       try {
-        const [fav, later] = await Promise.all([
+        const [fav] = await Promise.all([
           fetchJson<{ videoIds: string[] }>("/api/user/favorites/ids", tokenStr),
-          fetchJson<{ videoIds: string[] }>("/api/user/watch-later/ids", tokenStr),
         ]);
         setFavoriteIds(new Set(fav.videoIds));
-        setWatchLaterIds(new Set(later.videoIds));
       } catch {
         setFavoriteIds(new Set());
-        setWatchLaterIds(new Set());
       }
     }
     loadIds();
@@ -140,35 +135,6 @@ export default function Home() {
     [token, favoriteIds]
   );
 
-  const toggleWatchLater = useCallback(
-    async (videoId: string) => {
-      if (!token) return;
-      const inList = watchLaterIds.has(videoId);
-      try {
-        if (inList) {
-          await fetch(`${API_BASE}/api/user/watch-later/${videoId}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setWatchLaterIds((prev) => {
-            const next = new Set(prev);
-            next.delete(videoId);
-            return next;
-          });
-        } else {
-          await fetch(`${API_BASE}/api/user/watch-later/${videoId}`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setWatchLaterIds((prev) => new Set(prev).add(videoId));
-        }
-      } catch {
-        // ignore
-      }
-    },
-    [token, watchLaterIds]
-  );
-
   const sections = [
     { id: "trending", title: "Trending This Week", data: trending },
     { id: "new", title: "New Releases", data: newReleases },
@@ -229,7 +195,6 @@ export default function Home() {
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         <section className="relative mb-8 overflow-hidden rounded-2xl min-h-[280px]">
-          {/* Hero background: most viewed/liked (top trending) video thumbnail, blurred + transparent overlay so search stays readable */}
           <div
             className="absolute inset-0 -z-10"
             aria-hidden
@@ -279,32 +244,30 @@ export default function Home() {
           </div>
         </section>
 
-          {(query.trim() || searchResults.length > 0) && (
-            <div className="mt-6">
-              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-emerald-400">
+        {(query.trim() || searchResults.length > 0) && (
+          <div className="mt-6">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-emerald-400">
+              {query.trim()
+                ? "Search Results"
+                : `Browse: ${filter.charAt(0).toUpperCase() + filter.slice(1)}`}
+            </h2>
+            {searchResults.length > 0 ? (
+              <VideoGrid
+                videos={searchResults}
+                token={token}
+                favoriteIds={favoriteIds}
+                onFavoriteToggle={toggleFavorite}
+                onPlayEmbed={setEmbedVideoId}
+              />
+            ) : (
+              <p className="text-sm text-slate-500">
                 {query.trim()
-                  ? "Search Results"
-                  : `Browse: ${filter.charAt(0).toUpperCase() + filter.slice(1)}`}
-              </h2>
-              {searchResults.length > 0 ? (
-                <VideoGrid
-                  videos={searchResults}
-                  token={token}
-                  favoriteIds={favoriteIds}
-                  watchLaterIds={watchLaterIds}
-                  onFavoriteToggle={toggleFavorite}
-                  onWatchLaterToggle={toggleWatchLater}
-                  onPlayEmbed={setEmbedVideoId}
-                />
-              ) : (
-                <p className="text-sm text-slate-500">
-                  {query.trim()
-                    ? `No results found for "${query}" with the "${filter}" filter.`
-                    : `No videos for "${filter}" right now. Try another filter.`}
-                </p>
-              )}
-            </div>
-          )}
+                  ? `No results found for "${query}" with the "${filter}" filter.`
+                  : `No videos for "${filter}" right now. Try another filter.`}
+              </p>
+            )}
+          </div>
+        )}
 
         {loading && (
           <p className="text-sm text-slate-400">Loading latest music…</p>
@@ -326,9 +289,7 @@ export default function Home() {
                 videos={section.data}
                 token={token}
                 favoriteIds={favoriteIds}
-                watchLaterIds={watchLaterIds}
                 onFavoriteToggle={toggleFavorite}
-                onWatchLaterToggle={toggleWatchLater}
                 onPlayEmbed={setEmbedVideoId}
               />
             </section>
@@ -386,17 +347,13 @@ function VideoGrid({
   videos,
   token,
   favoriteIds,
-  watchLaterIds,
   onFavoriteToggle,
-  onWatchLaterToggle,
   onPlayEmbed,
 }: {
   videos: Video[];
   token: string | null;
   favoriteIds: Set<string>;
-  watchLaterIds: Set<string>;
   onFavoriteToggle: (videoId: string) => void;
-  onWatchLaterToggle: (videoId: string) => void;
   onPlayEmbed: (videoId: string) => void;
 }) {
   if (!videos.length) {
@@ -415,9 +372,7 @@ function VideoGrid({
           video={video}
           token={token}
           isFavorite={favoriteIds.has(video.videoId)}
-          isWatchLater={watchLaterIds.has(video.videoId)}
           onFavoriteToggle={onFavoriteToggle}
-          onWatchLaterToggle={onWatchLaterToggle}
           onPlayEmbed={onPlayEmbed}
         />
       ))}
@@ -429,23 +384,18 @@ function VideoCard({
   video,
   token,
   isFavorite,
-  isWatchLater,
   onFavoriteToggle,
-  onWatchLaterToggle,
   onPlayEmbed,
 }: {
   video: Video;
   token: string | null;
   isFavorite: boolean;
-  isWatchLater: boolean;
   onFavoriteToggle: (videoId: string) => void;
-  onWatchLaterToggle: (videoId: string) => void;
   onPlayEmbed: (videoId: string) => void;
 }) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 transition hover:border-emerald-500/70 hover:bg-slate-900">
       <div className="relative aspect-video overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={video.thumbnail}
           alt={video.title}
@@ -488,19 +438,6 @@ function VideoCard({
                   <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24" aria-hidden><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
                 ) : (
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => onWatchLaterToggle(video.videoId)}
-                className="min-h-[44px] min-w-[44px] rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                aria-label={isWatchLater ? "Remove from Watch Later" : "Add to Watch Later"}
-                title={isWatchLater ? "Remove from Watch Later" : "Watch Later"}
-              >
-                {isWatchLater ? (
-                  <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24" aria-hidden><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z" /></svg>
-                ) : (
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 )}
               </button>
             </div>

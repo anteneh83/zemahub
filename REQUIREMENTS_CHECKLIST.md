@@ -37,9 +37,8 @@ This document maps the project documentation to the implementation.
 - **Backend:** `POST/DELETE /api/user/favorites/:videoId`, `GET /api/user/favorites`, `GET /api/user/favorites/ids`.
 - **Frontend:** Heart button on each video card (when logged in); Dashboard "Favorites" section.
 
-### ⏳ 6. Watch Later Playlist ✅
-- **Backend:** `POST/DELETE /api/user/watch-later/:videoId`, `GET /api/user/watch-later`, `GET /api/user/watch-later/ids`.
-- **Frontend:** Watch-later icon on each video card (when logged in); Dashboard "Watch Later" section.
+### ⏳ 6. Watch Later Playlist (Removed)
+- **Status:** Feature removed as per user request (Favorites preferred for later view).
 
 ### 📱 7. Fully Mobile Responsive ✅
 - Tailwind responsive classes (`sm:`, `lg:`); touch-friendly min heights (44px); sticky header; viewport meta.

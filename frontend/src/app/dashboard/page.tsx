@@ -17,7 +17,6 @@ type Video = {
 export default function DashboardPage() {
   const router = useRouter();
   const [favorites, setFavorites] = useState<Video[]>([]);
-  const [watchLater, setWatchLater] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [embedVideoId, setEmbedVideoId] = useState<string | null>(null);
 
@@ -30,12 +29,10 @@ export default function DashboardPage() {
     const tokenStr: string = token;
     async function load() {
       try {
-        const [fav, later] = await Promise.all([
+        const [fav] = await Promise.all([
           apiFetch<Video[]>("/api/user/favorites", {}, tokenStr),
-          apiFetch<Video[]>("/api/user/watch-later", {}, tokenStr),
         ]);
         setFavorites(fav);
-        setWatchLater(later);
       } finally {
         setLoading(false);
       }
@@ -82,25 +79,15 @@ export default function DashboardPage() {
                 onPlayEmbed={setEmbedVideoId}
               />
             </section>
-            <section>
-              <h2 className="mb-3 text-lg font-semibold text-slate-50">
-                Watch Later
-              </h2>
-              <LibraryGrid
-                videos={watchLater}
-                emptyLabel="Your Watch Later list is empty."
-                onPlayEmbed={setEmbedVideoId}
-              />
-            </section>
           </>
         )}
 
-      {embedVideoId && (
-        <EmbedModal
-          videoId={embedVideoId}
-          onClose={() => setEmbedVideoId(null)}
-        />
-      )}
+        {embedVideoId && (
+          <EmbedModal
+            videoId={embedVideoId}
+            onClose={() => setEmbedVideoId(null)}
+          />
+        )}
       </main>
     </div>
   );
