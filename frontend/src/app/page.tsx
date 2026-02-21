@@ -356,6 +356,9 @@ function VideoGrid({
   onFavoriteToggle: (videoId: string) => void;
   onPlayEmbed: (videoId: string) => void;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const initialLimit = 15;
+
   if (!videos.length) {
     return (
       <p className="text-sm text-slate-500">
@@ -364,19 +367,33 @@ function VideoGrid({
     );
   }
 
+  const displayedVideos = isExpanded ? videos : videos.slice(0, initialLimit);
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {videos.map((video) => (
-        <VideoCard
-          key={video.videoId}
-          video={video}
-          token={token}
-          isFavorite={favoriteIds.has(video.videoId)}
-          onFavoriteToggle={onFavoriteToggle}
-          onPlayEmbed={onPlayEmbed}
-        />
-      ))}
-    </div>
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {displayedVideos.map((video) => (
+          <VideoCard
+            key={video.videoId}
+            video={video}
+            token={token}
+            isFavorite={favoriteIds.has(video.videoId)}
+            onFavoriteToggle={onFavoriteToggle}
+            onPlayEmbed={onPlayEmbed}
+          />
+        ))}
+      </div>
+      {!isExpanded && videos.length > initialLimit && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="rounded-full bg-slate-800 px-6 py-2 text-sm font-semibold text-emerald-400 border border-emerald-500/30 hover:bg-slate-700 hover:border-emerald-500 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-lg shadow-emerald-500/10"
+          >
+            See More ({videos.length - initialLimit} more)
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
